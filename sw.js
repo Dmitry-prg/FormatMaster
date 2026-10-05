@@ -1,5 +1,5 @@
 // Service Worker для PWA
-const CACHE_NAME = 'converter-v1';
+const CACHE_NAME = 'converter-v2';
 const CORE_ASSETS = [
   './',
   './index.html',
