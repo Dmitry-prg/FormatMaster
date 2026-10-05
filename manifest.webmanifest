@@ -1,6 +1,6 @@
 {
-  "name": "Универсальный Конвертер — фото, PDF, документы",
-  "short_name": "Конвертер",
+  "name": "FormatMaster - универсальный конвертер файлов",
+  "short_name": "FormatMaster",
   "description": "Фото → PDF, PDF → фото, документы, EPUB, Excel, OCR. Всё работает в браузере, файлы не загружаются на сервер.",
   "start_url": "./index.html",
   "scope": "./",
