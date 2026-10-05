@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Универсальный Конвертер</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#030308">
+<meta name="color-scheme" content="dark">
+<meta name="application-name" content="Конвертер">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Конвертер">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%238b5cf6'/%3E%3Cstop offset='50%25' stop-color='%234c1d95'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23030308'/%3E%3Cpath d='M32 6 L54 20 L54 44 L32 58 L10 44 L10 20 Z' fill='url(%23g1)'/%3E%3Cpath d='M32 6 L32 32 M32 58 L32 32 M10 20 L32 32 M54 20 L32 32' stroke='%23ffffff' stroke-opacity='0.4' stroke-width='0.6' fill='none'/%3E%3C/svg%3E">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.4/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
+<style>
+  :root {
+    --accent-1: #7c3aed;
+    --accent-2: #06b6d4;
+    --accent-3: #ec4899;
+    --success: #10b981;
+    --error: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --radius: 22px;
+    --radius-sm: 15px;
+
+    --glass-1: rgba(255, 255, 255, 0.028);
+    --glass-2: rgba(255, 255, 255, 0.045);
+    --glass-3: rgba(255, 255, 255, 0.075);
+    --glass-border: rgba(255, 255, 255, 0.09);
+    --glass-border-strong: rgba(255, 255, 255, 0.18);
+    --glass-inner-top: rgba(255, 255, 255, 0.16);
+    --glass-blur: 30px;
+    --glass-shadow:
+      0 14px 44px rgba(0, 0, 0, 0.65),
+      0 3px 10px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.13),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { min-height: 100%; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    color: var(--text);
+    background: #030308;
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(60px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: -60%;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(124, 58, 237, 0.28), transparent 38%),
+      radial-gradient(circle at 88% 12%, rgba(6, 182, 212, 0.22), transparent 40%),
+      radial-gradient(circle at 60% 92%, rgba(236, 72, 153, 0.18), transparent 45%),
+      radial-gradient(circle at 92% 82%, rgba(124, 58, 237, 0.18), transparent 42%),
+      radial-gradient(circle at 8% 88%, rgba(6, 182, 212, 0.14), transparent 38%);
+    filter: blur(90px);
+    animation: aurora 30s ease-in-out infinite alternate;
+    z-index: -3;
+    will-change: transform;
+  }
+  @keyframes aurora {
+    0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+    33%  { transform: translate(4%, -3%) scale(1.15) rotate(8deg); }
+    66%  { transform: translate(-3%, 4%) scale(1.08) rotate(-6deg); }
+    100% { transform: translate(2%, -2%) scale(1.12) rotate(4deg); }
+  }
+
+  .orbs {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: -2;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.55;
+    will-change: transform;
+  }
+  .orb.o1 {
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.55), transparent 70%);
+    top: 5%; left: -8%;
+    animation: drift1 26s ease-in-out infinite;
+  }
+  .orb.o2 {
+    width: 360px; height: 360px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.5), transparent 70%);
+    top: 40%; right: -10%;
+    animation: drift2 32s ease-in-out infinite;
+  }
+  .orb.o3 {
+    width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.42), transparent 70%);
+    bottom: -5%; left: 30%;
+    animation: drift3 28s ease-in-out infinite;
+  }
+  @keyframes drift1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(15%, 20%) scale(1.15); }
+    66%      { transform: translate(8%, 8%) scale(0.92); }
+  }
+  @keyframes drift2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-18%, -22%) scale(1.18); }
+  }
+  @keyframes drift3 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    40%      { transform: translate(-12%, -18%) scale(1.12); }
+    80%      { transform: translate(14%, -8%) scale(0.95); }
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.028) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    z-index: -1;
+    mix-blend-mode: overlay;
+    animation: grainShift 8s steps(8) infinite;
+  }
+  @keyframes grainShift {
+    0%   { transform: translate(0, 0); }
+    25%  { transform: translate(-2px, 1px); }
+    50%  { transform: translate(1px, -2px); }
+    75%  { transform: translate(-1px, -1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  .app { max-width: 1000px; margin: 0 auto; position: relative; }
+
+  /* ============ PWA CONTROLS (верхний правый угол) ============ */
+  .pwa-controls {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 8px;
+    z-index: 999;
+    align-items: center;
+  }
+
+  .install-btn {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(236, 72, 153, 0.85));
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 100px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    box-shadow:
+      0 6px 18px rgba(124, 58, 237, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: installPulse 2.8s ease-in-out infinite;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .install-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    transform: skewX(-20deg);
+    animation: installShine 3.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes installShine {
+    0%   { left: -60%; }
+    60%  { left: 130%; }
+    100% { left: 130%; }
+  }
+  @keyframes installPulse {
+    0%, 100% {
+      box-shadow:
+        0 6px 18px rgba(124, 58, 237, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+      box-shadow:
+        0 6px 26px rgba(236, 72, 153, 0.75),
+        0 0 0 1px rgba(236, 72, 153, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+  }
+  .install-btn:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 8px 24px rgba(124, 58, 237, 0.7),
+      0 0 0 1px rgba(236, 72, 153, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  .install-btn:active {
+    transform: translateY(0) scale(0.97);
+  }
+  .install-btn svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+  .install-btn .install-text { position: relative; z-index: 1; }
+
+  /* ====== MEMORY WIDGET (компактный) ====== */
+  .mem-widget {
+    padding: 3px 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 100px;
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    font-size: 0.66rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: rgba(148, 163, 184, 0.45);
+    transition: color 0.5s ease, background 0.5s ease, opacity 0.4s ease;
+    cursor: default;
+    user-select: none;
+    opacity: 0.45;
+  }
+  .mem-widget:hover {
+    opacity: 0.95;
+    color: rgba(148, 163, 184, 0.85);
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .mem-widget.warn { color: rgba(251, 191, 36, 0.55); opacity: 0.55; }
+  .mem-widget.warn:hover { color: rgba(251, 191, 36, 0.95); opacity: 1; }
+  .mem-widget.danger {
+    color: rgba(248, 113, 113, 0.7);
+    opacity: 0.7;
+    animation: memPulse 2.6s ease-in-out infinite;
+  }
+  .mem-widget.danger:hover { opacity: 1; color: rgba(248, 113, 113, 1); }
+  @keyframes memPulse {
+    0%, 100% { opacity: 0.7; }
+    50%      { opacity: 0.25; }
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: fadeDown 1s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .logo-icon {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    animation: logoFloat 6s ease-in-out infinite, logoGlow 4s ease-in-out infinite;
+    will-change: transform, filter;
+  }
+  @keyframes logoFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+    30%      { transform: translateY(-6px) rotate(-4deg) scale(1.04); }
+    70%      { transform: translateY(-3px) rotate(3deg) scale(1.02); }
+  }
+  @keyframes logoGlow {
+    0%, 100% {
+      filter:
+        drop-shadow(0 0 14px rgba(124, 58, 237, 0.6))
+        drop-shadow(0 0 32px rgba(6, 182, 212, 0.35));
+    }
+    50% {
+      filter:
+        drop-shadow(0 0 22px rgba(124, 58, 237, 0.9))
+        drop-shadow(0 0 48px rgba(6, 182, 212, 0.55));
+    }
+  }
+
+  h1 {
+    font-size: clamp(1.4rem, 3.8vw, 2.3rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #ffffff 0%, #b3b8e0 35%, #7c3aed 60%, #06b6d4 100%);
+    background-size: 220% 220%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 8s ease-in-out infinite;
+    text-shadow: 0 0 80px rgba(124, 58, 237, 0.35);
+  }
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  header p { color: var(--text-dim); font-size: 0.96rem; max-width: 600px; margin: 0 auto; }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .mem-banner {
+    display: none;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(239,68,68,0.16), rgba(239,68,68,0.05));
+    border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 16px;
+    margin-bottom: 18px;
+    color: #fecaca;
+    font-size: 0.94rem;
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    box-shadow:
+      0 8px 32px rgba(239, 68, 68, 0.25),
+      inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .mem-banner.show {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    animation: bannerSlide 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes bannerSlide {
+    from { opacity: 0; transform: translateY(-14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .mem-banner .mem-text { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+  .mem-banner .mem-text .icon {
+    font-size: 1.5rem;
+    animation: iconWiggle 1.6s ease-in-out infinite;
+  }
+  @keyframes iconWiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25%      { transform: rotate(-8deg); }
+    75%      { transform: rotate(8deg); }
+  }
+  .mem-banner .mem-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mem-banner button {
+    padding: 10px 18px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88rem;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+  }
+  .mem-banner .reload-btn { background: rgba(239,68,68,0.85); color: white; }
+  .mem-banner .reload-btn:hover { background: rgba(220,38,38,1); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(239,68,68,0.4); }
+  .mem-banner .clear-btn { background: rgba(255,255,255,0.07); color: var(--text); }
+  .mem-banner .clear-btn:hover { background: rgba(255,255,255,0.15); }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding: 8px;
+    background: linear-gradient(180deg, var(--glass-2), var(--glass-1));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    box-shadow: var(--glass-shadow);
+    margin-bottom: 24px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: relative;
+    animation: fadeDown 1s 0.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  .tabs::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 8%; right: 8%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-inner-top), transparent);
+    pointer-events: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    flex: 1 0 auto;
+    padding: 12px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 16px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.35s ease, background 0.35s ease, transform 0.2s ease;
+    font-family: inherit;
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+  }
+  .tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.14), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .tab:hover:not(.active)::before { opacity: 1; }
+  .tab:hover:not(.active) {
+    color: var(--text);
+    transform: translateY(-1px);
+  }
+  .tab.active {
+    color: white;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(6, 182, 212, 0.85));
+    box-shadow:
+      0 8px 28px rgba(124, 58, 237, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    animation: tabPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes tabPop {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -100%;
+    width: 60%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    transform: skewX(-20deg);
+    animation: tabShine 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes tabShine {
+    0%   { left: -100%; }
+    60%  { left: 200%; }
+    100% { left: 200%; }
+  }
+
+  .panel {
+    display: none;
+    padding: 30px;
+    background: linear-gradient(160deg, var(--glass-2) 0%, var(--glass-1) 60%, rgba(0,0,0,0.15) 100%);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(200%);
+    box-shadow: var(--glass-shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 6%; right: 6%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--glass-inner-top), transparent);
+    pointer-events: none;
+  }
+  .panel::after {
+    content: '';
+    position: absolute;
+    top: -120px; right: -120px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.08), transparent 70%);
+    pointer-events: none;
+    filter: blur(30px);
+    animation: cornerGlow 8s ease-in-out infinite;
+  }
+  @keyframes cornerGlow {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.15); }
+  }
+  .panel.active { display: block; animation: panelReveal 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes panelReveal {
+    0%   { opacity: 0; transform: translateY(20px) scale(0.985); filter: blur(8px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  .dropzone {
+    border: 1.5px dashed rgba(255,255,255,0.14);
+    border-radius: var(--radius-sm);
+    padding: 44px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.008));
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .dropzone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(236, 72, 153, 0.28), rgba(124, 58, 237, 0.12), transparent 72%);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+  }
+  .dropzone::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(236, 72, 153, 0.55) 25%, rgba(168, 85, 247, 0.6) 50%, rgba(124, 58, 237, 0.55) 75%, transparent 100%);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.4s ease;
+    animation: rotateConic 4s linear infinite;
+  }
+  @keyframes rotateConic {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: rgba(236, 72, 153, 0.65);
+    background: linear-gradient(180deg, rgba(236,72,153,0.09), rgba(124,58,237,0.05));
+    transform: translateY(-3px) scale(1.005);
+    box-shadow:
+      0 22px 55px rgba(236, 72, 153, 0.22),
+      0 0 0 1px rgba(236, 72, 153, 0.15),
+      inset 0 1px 0 rgba(255,255,255,0.14);
+  }
+  .dropzone:hover::before, .dropzone.dragover::before { opacity: 1; }
+  .dropzone:hover::after,  .dropzone.dragover::after  { opacity: 0.85; }
+
+  .dropzone-icon {
+    font-size: 2.9rem;
+    margin-bottom: 12px;
+    display: block;
+    filter: drop-shadow(0 0 22px rgba(124, 58, 237, 0.7));
+    animation: iconFloat 3.6s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+    transition: filter 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes iconFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(-10px) scale(1.04); }
+  }
+  .dropzone:hover .dropzone-icon,
+  .dropzone.dragover .dropzone-icon {
+    filter:
+      drop-shadow(0 0 18px rgba(236, 72, 153, 0.95))
+      drop-shadow(0 0 40px rgba(168, 85, 247, 0.6));
+    transform: scale(1.08) rotate(-4deg);
+  }
+  .dropzone-text {
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 1.02rem;
+    position: relative;
+    z-index: 1;
+    transition: color 0.35s ease, text-shadow 0.35s ease;
+  }
+  .dropzone:hover .dropzone-text,
+  .dropzone.dragover .dropzone-text {
+    color: #f9a8d4;
+    text-shadow: 0 0 16px rgba(236, 72, 153, 0.5);
+  }
+  .dropzone-hint {
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    position: relative;
+    z-index: 1;
+    transition: color 0.35s ease;
+  }
+  .dropzone:hover .dropzone-hint,
+  .dropzone.dragover .dropzone-hint { color: #c4b5fd; }
+
+  .sortable-ghost { opacity: 0.35; }
+  .sortable-chosen { cursor: grabbing; }
+  .sortable-drag { transform: rotate(2deg) scale(1.04); box-shadow: 0 24px 50px rgba(0,0,0,0.75); }
+
+  .files {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .file-item {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.4);
+    aspect-ratio: 1;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s, border-color 0.35s;
+    animation: itemPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: grab;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.09);
+  }
+  @keyframes itemPop {
+    0%   { opacity: 0; transform: scale(0.7) rotate(-3deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .file-item:hover {
+    transform: translateY(-5px) scale(1.03);
+    box-shadow:
+      0 18px 40px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(236, 72, 153, 0.4),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+    border-color: rgba(236, 72, 153, 0.55);
+  }
+  .file-item img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+  .file-item .remove {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.25);
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  .file-item:hover .remove { opacity: 1; transform: scale(1); }
+  .file-item .remove:hover { background: var(--error); transform: scale(1.15) rotate(90deg); }
+  .file-item .num {
+    position: absolute;
+    bottom: 6px; left: 6px;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    color: white;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    pointer-events: none;
+    transition: transform 0.25s ease;
+  }
+  .file-item:hover .num { transform: scale(1.1); }
+
+  .doc-files { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+  .doc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    transition: border-color 0.35s, background 0.35s, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: itemPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: grab;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, #ec4899, var(--accent-1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .doc-item:hover {
+    border-color: rgba(236, 72, 153, 0.4);
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    transform: translateX(4px);
+  }
+  .doc-item:hover::before { opacity: 1; }
+  .doc-item .icon {
+    font-size: 1.7rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.55));
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+  .doc-item:hover .icon { transform: scale(1.12) rotate(-4deg); }
+  .doc-item .info { flex: 1; min-width: 0; pointer-events: none; }
+  .doc-item .name { font-weight: 600; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-item .meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+  .doc-item .drag-handle {
+    color: var(--text-dim); font-size: 1.2rem; letter-spacing: -2px; padding: 4px; pointer-events: none;
+    transition: color 0.25s ease;
+  }
+  .doc-item:hover .drag-handle { color: var(--text); }
+  .doc-item .remove {
+    background: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    width: 30px; height: 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s ease;
+    flex-shrink: 0;
+    backdrop-filter: blur(8px);
+  }
+  .doc-item .remove:hover { background: var(--error); color: white; transform: scale(1.1) rotate(90deg); }
+
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+  .options.single { grid-template-columns: 1fr; }
+  .option label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .option select, .option input {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    font-size: 0.95rem;
+    background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.25));
+    color: var(--text);
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px;
+    padding-right: 38px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .option select:hover, .option input:hover {
+    border-color: var(--glass-border-strong);
+    background-color: rgba(0, 0, 0, 0.55);
+    transform: translateY(-1px);
+  }
+  .option select:focus, .option input:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.65);
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12), 0 8px 24px rgba(236, 72, 153, 0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+    transform: translateY(-1px);
+  }
+  .option select option { background: #0a0a1a; color: var(--text); }
+
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-top: 22px;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    color: white;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(6, 182, 212, 0.85));
+    background-size: 200% 200%;
+    box-shadow:
+      0 10px 30px rgba(124, 58, 237, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    isolation: isolate;
+  }
+  .btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.22), transparent);
+    pointer-events: none;
+    border-radius: 16px 16px 0 0;
+  }
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform: skewX(-20deg);
+    transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .btn:hover:not(:disabled)::after { left: 130%; }
+  .btn > span { position: relative; z-index: 1; }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow:
+      0 18px 44px rgba(124, 58, 237, 0.55),
+      0 0 0 1px rgba(6, 182, 212, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+    background-position: 100% 50%;
+  }
+  .btn:active:not(:disabled) { transform: translateY(-1px) scale(0.99); transition: all 0.1s ease; }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; filter: grayscale(0.5); }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transform: scale(0);
+    animation: rippleExpand 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  @keyframes rippleExpand { to { transform: scale(4); opacity: 0; } }
+
+  .status {
+    margin-top: 18px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    display: none;
+    border: 1px solid transparent;
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    animation: statusSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  @keyframes statusSlide {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .status.show { display: block; }
+  .status.info    { background: linear-gradient(180deg, rgba(6,182,212,0.14), rgba(6,182,212,0.05));  border-color: rgba(6,182,212,0.3);  color: #67e8f9; }
+  .status.success { background: linear-gradient(180deg, rgba(16,185,129,0.14), rgba(16,185,129,0.05)); border-color: rgba(16,185,129,0.3); color: #6ee7b7; }
+  .status.error   { background: linear-gradient(180deg, rgba(239,68,68,0.14), rgba(239,68,68,0.05));   border-color: rgba(239,68,68,0.3);  color: #fca5a5; }
+  .status.warn    { background: linear-gradient(180deg, rgba(245,158,11,0.14), rgba(245,158,11,0.05)); border-color: rgba(245,158,11,0.3); color: #fcd34d; }
+
+  .progress-bar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 100px;
+    margin-top: 16px;
+    overflow: hidden;
+    display: none;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .progress-bar.show { display: block; animation: statusSlide 0.4s ease; }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
+    background-size: 200% 100%;
+    width: 0%;
+    border-radius: 100px;
+    transition: width 0.3s ease;
+    animation: progressShimmer 2s linear infinite;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.9), 0 0 32px rgba(6, 182, 212, 0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 40px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7));
+    animation: progressHead 1.2s ease-in-out infinite;
+  }
+  @keyframes progressShimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @keyframes progressHead {
+    0%, 100% { opacity: 0.5; }
+    50%      { opacity: 1; }
+  }
+
+  .results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .result-item {
+    text-align: center;
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.01));
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: itemPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .result-item:hover {
+    transform: translateY(-5px) scale(1.02);
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: 0 16px 40px rgba(236, 72, 153, 0.2), 0 0 0 1px rgba(236, 72, 153, 0.3), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .result-item img { width: 100%; border-radius: 10px; display: block; margin-bottom: 8px; border: 1px solid var(--glass-border); transition: transform 0.35s ease; }
+  .result-item:hover img { transform: scale(1.02); }
+  .result-item a {
+    display: block;
+    font-size: 0.82rem;
+    color: #f9a8d4;
+    text-decoration: none;
+    font-weight: 600;
+    word-break: break-all;
+    transition: color 0.25s ease;
+  }
+  .result-item a:hover { color: #c4b5fd; text-decoration: underline; }
+  .result-item .file-icon {
+    font-size: 2.4rem;
+    padding: 18px 0 12px;
+    filter: drop-shadow(0 0 12px rgba(124, 58, 237, 0.6));
+    transition: transform 0.35s ease;
+    display: inline-block;
+  }
+  .result-item:hover .file-icon { transform: scale(1.15) rotate(-5deg); }
+
+  .ocr-text {
+    width: 100%;
+    min-height: 200px;
+    margin-top: 18px;
+    padding: 15px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.3));
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    resize: vertical;
+    display: none;
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+  .ocr-text.show { display: block; animation: statusSlide 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .ocr-text:focus {
+    outline: none;
+    border-color: rgba(236, 72, 153, 0.65);
+    box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  #downloadZipBtn, #docDownloadZipBtn, #epubZipBtn, #xlsxZipBtn, #ocrZipBtn {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(6, 182, 212, 0.85));
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+  }
+  #downloadZipBtn:hover:not(:disabled), #docDownloadZipBtn:hover:not(:disabled),
+  #epubZipBtn:hover:not(:disabled), #xlsxZipBtn:hover:not(:disabled), #ocrZipBtn:hover:not(:disabled) {
+    box-shadow: 0 18px 44px rgba(16, 185, 129, 0.5), 0 0 0 1px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  .footer { text-align: center; margin-top: 36px; color: var(--text-dim); font-size: 0.85rem; opacity: 0.65; }
+
+  @media (max-width: 640px) {
+    .panel { padding: 22px; }
+    .options { grid-template-columns: 1fr; }
+    .tabs { padding: 6px; }
+    .tab { padding: 11px 12px; font-size: 0.82rem; }
+    .dropzone { padding: 34px 16px; }
+    .files { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+    .pwa-controls { top: 6px; right: 6px; gap: 6px; }
+    .mem-widget { font-size: 0.6rem; padding: 2px 6px; }
+    .install-btn { font-size: 0.66rem; padding: 4px 10px; }
+    .install-btn .install-text { display: none; }
+    .install-btn svg { width: 14px; height: 14px; }
+    .mem-banner { padding: 14px 16px; font-size: 0.88rem; }
+    .logo-icon { width: 42px; height: 42px; }
+    .logo-wrap { gap: 10px; }
+    .orb.o1 { width: 260px; height: 260px; }
+    .orb.o2 { width: 220px; height: 220px; }
+    .orb.o3 { width: 200px; height: 200px; }
+  }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(124, 58, 237, 0.4);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(124, 58, 237, 0.75); background-clip: padding-box; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="orbs" aria-hidden="true">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<!-- PWA-контролы: кнопка установки + виджет памяти -->
+<div class="pwa-controls">
+  <button class="install-btn" id="installBtn" type="button" title="Установить приложение">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 3v12"/>
+      <path d="m7 10 5 5 5-5"/>
+      <path d="M5 21h14"/>
+    </svg>
+    <span class="install-text">Установить</span>
+  </button>
+  <div class="mem-widget" id="memWidget" title="Использование памяти JavaScript">
+    <span id="memText">…</span>
+  </div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo-wrap">
+      <svg class="logo-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="lgFace1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#8b5cf6"/>
+            <stop offset="45%" stop-color="#4c1d95"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+          </linearGradient>
+          <linearGradient id="lgFaceTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0.1"/>
+          </linearGradient>
+          <linearGradient id="lgFaceRight" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.95"/>
+          </linearGradient>
+          <linearGradient id="lgFaceLeft" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#050514" stop-opacity="0.85"/>
+          </linearGradient>
+          <radialGradient id="lgGlow" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.7"/>
+            <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="32" cy="34" rx="27" ry="27" fill="url(#lgGlow)"/>
+        <path d="M32 3 L58 20 L58 44 L32 61 L6 44 L6 20 Z" fill="url(#lgFace1)" opacity="0.92"/>
+        <path d="M32 3 L58 20 L32 33 Z" fill="url(#lgFaceTop)"/>
+        <path d="M32 3 L6 20 L32 33 Z" fill="#ffffff" opacity="0.16"/>
+        <path d="M32 33 L58 20 L58 44 L32 61 Z" fill="url(#lgFaceRight)"/>
+        <path d="M32 33 L6 20 L6 44 L32 61 Z" fill="url(#lgFaceLeft)"/>
+        <path d="M32 3 L32 33 M32 61 L32 33 M6 20 L32 33 M58 20 L32 33"
+              stroke="#ffffff" stroke-opacity="0.3" stroke-width="0.7"/>
+        <circle cx="24" cy="18" r="2.2" fill="#ffffff" opacity="0.95"/>
+        <circle cx="23" cy="17" r="0.9" fill="#ffffff"/>
+      </svg>
+      <h1>Универсальный Конвертер</h1>
+    </div>
+    <p>Фото · PDF · Документы · EPUB · Excel · OCR — всё работает в браузере. Файлы не покидают ваше устройство.</p>
+  </header>
+
+  <div class="mem-banner" id="memBanner">
+    <div class="mem-text">
+      <span class="icon">⚠️</span>
+      <span id="memBannerText">Оперативная память заполнена. Дальнейшая обработка остановлена.</span>
+    </div>
+    <div class="mem-buttons">
+      <button class="clear-btn" id="clearMemBtn">🧹 Очистить кэш</button>
+      <button class="reload-btn" id="reloadBtn">🔄 Перезагрузить страницу</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabsBar">
+    <button class="tab active" data-tab="img2pdf">📷 Фото → PDF</button>
+    <button class="tab" data-tab="pdf2img">📄 PDF → Фото</button>
+    <button class="tab" data-tab="docs">📝 Документы</button>
+    <button class="tab" data-tab="epub">📚 EPUB ↔ PDF</button>
+    <button class="tab" data-tab="xlsx">📊 Excel</button>
+    <button class="tab" data-tab="ocr">🔍 OCR</button>
+  </div>
+
+  <div class="panel active" id="img2pdf">
+    <div class="dropzone" id="imgDrop">
+      <span class="dropzone-icon">🖼️</span>
+      <div class="dropzone-text">Перетащите фото сюда или нажмите</div>
+      <div class="dropzone-hint">JPG, PNG, WEBP — до 30 файлов / 100 МБ каждый</div>
+      <input type="file" id="imgInput" accept="image/*" multiple hidden>
+    </div>
+    <div class="files" id="imgFiles"></div>
+    <div class="options">
+      <div class="option">
+        <label>Ориентация</label>
+        <select id="orientation">
+          <option value="auto">Автоматически</option>
+          <option value="portrait">Книжная</option>
+          <option value="landscape">Альбомная</option>
+        </select>
+      </div>
+      <div class="option">
+        <label>Размер страницы</label>
+        <select id="pageSize">
+          <option value="a4">A4</option>
+          <option value="letter">Letter</option>
+          <option value="fit">По размеру фото</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="convertBtn" disabled><span>Создать PDF</span></button>
+    <div class="status" id="status"></div>
+    <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="panel" id="pdf2img">
+    <div class="dropzone" id="pdfDrop">
+      <span class="dropzone-icon">📄</span>
+      <div class="dropzone-text">Перетащите PDF сюда или нажмите</div>
+      <div class="dropzone-hint">Можно несколько PDF · до 30 файлов</div>
+      <input type="file" id="pdfInput" accept="application/pdf" multiple hidden>
+    </div>
+    <div class="options">
+      <div class="option">
+        <label>Формат изображения</label>
+        <select id="imgFormat">
+          <option value="image/jpeg">JPG</option>
+          <option value="image/png">PNG</option>
+        </select>
+      </div>
+      <div class="option">
+        <label>Качество / масштаб</label>
+        <select id="imgScale">
+          <option value="1">Обычное (1x)</option>
+          <option value="2" selected>Высокое (2x)</option>
+          <option value="3">Очень высокое (3x)</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="pdfConvertBtn" disabled><span>Конвертировать в изображения</span></button>
+    <div class="status" id="pdfStatus"></div>
+    <div class="progress-bar" id="pdfProgressBar"><div class="progress-fill" id="pdfProgressFill"></div></div>
+    <div class="results" id="results"></div>
+    <button class="btn" id="downloadZipBtn" style="display:none;"><span>📦 Скачать все в ZIP</span></button>
+  </div>
+
+  <div class="panel" id="docs">
+    <div class="dropzone" id="docDrop">
+      <span class="dropzone-icon">📝</span>
+      <div class="dropzone-text">Перетащите документы сюда или нажмите</div>
+      <div class="dropzone-hint">DOCX, TXT, MD, PDF · до 30 файлов</div>
+      <input type="file" id="docInput" accept=".docx,.txt,.md,.pdf,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple hidden>
+    </div>
+    <div class="doc-files" id="docFiles"></div>
+    <div class="options single">
+      <div class="option">
+        <label>Формат на выходе</label>
+        <select id="docTargetFormat">
+          <option value="pdf">PDF — универсальный документ</option>
+          <option value="html">HTML — веб-страница</option>
+          <option value="txt">TXT — простой текст</option>
+          <option value="doc">DOC — Microsoft Word</option>
+        </select>
+      </div>
+    </div>
+    <div class="status info" style="display:block; margin-top: 14px;">
+      ℹ️ <b>DOCX → PDF/HTML/TXT/DOC</b> · <b>TXT → PDF/HTML/DOC</b> · <b>MD → PDF/HTML/TXT/DOC</b> · <b>PDF → TXT</b>
+    </div>
+    <button class="btn" id="docConvertBtn" disabled><span>Конвертировать документы</span></button>
+    <div class="status" id="docStatus"></div>
+    <div class="progress-bar" id="docProgressBar"><div class="progress-fill" id="docProgressFill"></div></div>
+    <div class="results" id="docResults"></div>
+    <button class="btn" id="docDownloadZipBtn" style="display:none;"><span>📦 Скачать все в ZIP</span></button>
+  </div>
+
+  <div class="panel" id="epub">
+    <div class="dropzone" id="epubDrop">
+      <span class="dropzone-icon">📚</span>
+      <div class="dropzone-text">Перетащите EPUB или PDF сюда</div>
+      <div class="dropzone-hint">EPUB → PDF · PDF → EPUB · до 30 файлов</div>
+      <input type="file" id="epubInput" accept=".epub,.pdf,application/epub+zip,application/pdf" multiple hidden>
+    </div>
+    <div class="doc-files" id="epubFiles"></div>
+    <div class="options single">
+      <div class="option">
+        <label>Формат на выходе</label>
+        <select id="epubTarget">
+          <option value="pdf">PDF — из EPUB или PDF (пересборка)</option>
+          <option value="epub">EPUB — из PDF (текст)</option>
+        </select>
+      </div>
+    </div>
+    <div class="status info" style="display:block; margin-top: 14px;">
+      💡 EPUB → PDF сохраняет главы, заголовки и форматирование. PDF → EPUB создаёт текстовый EPUB.
+    </div>
+    <button class="btn" id="epubConvertBtn" disabled><span>Конвертировать книги</span></button>
+    <div class="status" id="epubStatus"></div>
+    <div class="progress-bar" id="epubProgressBar"><div class="progress-fill" id="epubProgressFill"></div></div>
+    <div class="results" id="epubResults"></div>
+    <button class="btn" id="epubZipBtn" style="display:none;"><span>📦 Скачать все в ZIP</span></button>
+  </div>
+
+  <div class="panel" id="xlsx">
+    <div class="dropzone" id="xlsxDrop">
+      <span class="dropzone-icon">📊</span>
+      <div class="dropzone-text">Перетащите Excel-файлы сюда</div>
+      <div class="dropzone-hint">XLSX, XLS, CSV · каждый лист — отдельный файл</div>
+      <input type="file" id="xlsxInput" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" multiple hidden>
+    </div>
+    <div class="doc-files" id="xlsxFiles"></div>
+    <div class="options single">
+      <div class="option">
+        <label>Формат на выходе</label>
+        <select id="xlsxTarget">
+          <option value="csv">CSV — таблица для Excel</option>
+          <option value="pdf">PDF — красивая таблица</option>
+          <option value="html">HTML — веб-таблица</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="xlsxConvertBtn" disabled><span>Конвертировать таблицы</span></button>
+    <div class="status" id="xlsxStatus"></div>
+    <div class="progress-bar" id="xlsxProgressBar"><div class="progress-fill" id="xlsxProgressFill"></div></div>
+    <div class="results" id="xlsxResults"></div>
+    <button class="btn" id="xlsxZipBtn" style="display:none;"><span>📦 Скачать все в ZIP</span></button>
+  </div>
+
+  <div class="panel" id="ocr">
+    <div class="dropzone" id="ocrDrop">
+      <span class="dropzone-icon">🔍</span>
+      <div class="dropzone-text">Перетащите фото или PDF для распознавания</div>
+      <div class="dropzone-hint">JPG, PNG, WEBP, PDF · при первом запуске скачиваются языковые данные</div>
+      <input type="file" id="ocrInput" accept="image/*,application/pdf" multiple hidden>
+    </div>
+    <div class="doc-files" id="ocrFiles"></div>
+    <div class="options">
+      <div class="option">
+        <label>Язык распознавания</label>
+        <select id="ocrLang">
+          <option value="rus+eng">Русский + English</option>
+          <option value="rus">Русский</option>
+          <option value="eng">English</option>
+          <option value="ukr+rus+eng">Украинский + Русский + English</option>
+          <option value="deu+eng">Deutsch + English</option>
+        </select>
+      </div>
+      <div class="option">
+        <label>Формат результата</label>
+        <select id="ocrOutput">
+          <option value="txt">TXT — простой текст</option>
+          <option value="pdf">PDF — поисковый документ</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn" id="ocrConvertBtn" disabled><span>Распознать текст</span></button>
+    <div class="status" id="ocrStatus"></div>
+    <div class="progress-bar" id="ocrProgressBar"><div class="progress-fill" id="ocrProgressFill"></div></div>
+    <textarea class="ocr-text" id="ocrTextPreview" placeholder="Здесь появится распознанный текст..."></textarea>
+    <div class="results" id="ocrResults"></div>
+    <button class="btn" id="ocrZipBtn" style="display:none;"><span>📦 Скачать все в ZIP</span></button>
+  </div>
+
+  <div class="footer">🔒 Приватность гарантирована — файлы не покидают ваше устройство</div>
+</div>
+
+<script>
+/* ============================================================
+   PWA: РЕГИСТРАЦИЯ SERVICE WORKER + УСТАНОВКА
+============================================================ */
+(function initPWA() {
+  // Service worker — только если работаем не через file://
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { scope: './' })
+        .then(reg => console.log('[PWA] SW зарегистрирован:', reg.scope))
+        .catch(err => console.warn('[PWA] SW не зарегистрирован:', err.message));
+    });
+  }
+
+  const installBtn = document.getElementById('installBtn');
+  if (!installBtn) return;
+
+  // Определяем, уже ли установлено
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: minimal-ui)').matches ||
+    window.navigator.standalone === true;
+
+  if (isStandalone) {
+    installBtn.style.display = 'none';
+    return;
+  }
+
+  // Chrome / Edge / Samsung — перехватываем beforeinstallprompt
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'inline-flex';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+    console.log('[PWA] Приложение установлено');
+  });
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      // Есть нативный prompt
+      deferredPrompt.prompt();
+      try {
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log('[PWA] userChoice:', outcome);
+      } catch (e) {}
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+      return;
+    }
+
+    // iOS / Safari — показываем инструкцию
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      alert('Установка на iPhone / iPad:\n\n1. Нажмите кнопку «Поделиться» (квадрат со стрелкой вверх) в Safari\n2. Пролистайте и выберите «На экран Домой»\n3. Нажмите «Добавить» — иконка появится на главном экране');
+    } else {
+      // Firefox / другие браузеры без beforeinstallprompt
+      alert('Установка приложения:\n\n• Chrome / Edge: меню (три точки) → «Установить приложение»\n• Firefox: меню → «Установить»\n• Safari (macOS): Файл → «Добавить в Dock»');
+    }
+  });
+
+  // Показываем кнопку на iOS сразу (там нет beforeinstallprompt)
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) installBtn.style.display = 'inline-flex';
+})();
+
+/* ============================================================
+   МОДУЛЬ ЗАЩИТЫ ПАМЯТИ
+============================================================ */
+const LIMITS = {
+  MAX_FILE_MB: 100,
+  MAX_BATCH_MB: 300,
+  MAX_FILES: 30,
+  MAX_PAGES_PER_PDF: 500,
+  MEMORY_WARN: 0.75,
+  MEMORY_STOP: 0.88,
+  CHECK_INTERVAL: 1500,
+  YIELD_MS: 12
+};
+
+const MemoryGuard = {
+  supported: typeof performance !== 'undefined' && !!performance.memory,
+  tripped: false,
+  tripReason: '',
+  peak: 0,
+
+  read() {
+    if (!this.supported) return null;
+    const m = performance.memory;
+    if (!m) return null;
+    const used = m.usedJSHeapSize;
+    const limit = m.jsHeapSizeLimit;
+    if (!limit) return null;
+    const ratio = used / limit;
+    if (ratio > this.peak) this.peak = ratio;
+    return { used, limit, ratio };
+  },
+
+  update() {
+    const w = document.getElementById('memWidget');
+    const t = document.getElementById('memText');
+    if (!w || !t) return;
+    const info = this.read();
+    if (!info) {
+      t.textContent = 'n/a';
+      w.title = 'Точный замер памяти доступен только в Chrome / Edge. Работают ограничения по размеру файлов.';
+      return;
+    }
+    const mb = (b) => (b / 1024 / 1024).toFixed(0);
+    const pct = Math.round(info.ratio * 100);
+    t.textContent = pct + '%';
+    w.title = `RAM: ${mb(info.used)} / ${mb(info.limit)} МБ · Пик: ${Math.round(this.peak * 100)}% · Стоп при ${Math.round(LIMITS.MEMORY_STOP * 100)}%`;
+    if (this.tripped || info.ratio >= LIMITS.MEMORY_STOP) {
+      w.classList.add('danger'); w.classList.remove('warn');
+      if (!this.tripped) this.trip('Автоматически: превышен порог использования памяти');
+    } else if (info.ratio >= LIMITS.MEMORY_WARN) {
+      w.classList.add('warn'); w.classList.remove('danger');
+    } else {
+      w.classList.remove('warn', 'danger');
+    }
+  },
+
+  trip(reason) {
+    if (this.tripped) return;
+    this.tripped = true;
+    this.tripReason = reason || 'Память заполнена';
+    console.warn('[MemoryGuard] trip:', this.tripReason);
+    showMemBanner(this.tripReason);
+  },
+
+  reset() {
+    this.tripped = false;
+    this.tripReason = '';
+    const b = document.getElementById('memBanner');
+    if (b) b.classList.remove('show');
+    this.update();
+  },
+
+  guard() {
+    if (this.tripped) throw new Error('🛑 Обработка остановлена: превышен лимит памяти. Нажмите «Очистить кэш» или «Перезагрузить».');
+    const info = this.read();
+    if (info && info.ratio >= LIMITS.MEMORY_STOP) {
+      this.trip('Автоматически: память заполнена во время обработки');
+      throw new Error('🛑 Обработка остановлена: оперативная память заполнена. Освободите ресурсы и попробуйте снова.');
+    }
+  },
+
+  startWatch() {
+    this.update();
+    setInterval(() => this.update(), LIMITS.CHECK_INTERVAL);
+  }
+};
+
+function showMemBanner(reason) {
+  const b = document.getElementById('memBanner');
+  const t = document.getElementById('memBannerText');
+  if (!b) return;
+  if (t && reason) t.textContent = '⚠️ ' + reason + ' Дальнейшая обработка остановлена.';
+  b.classList.add('show');
+}
+
+function releaseCanvas(canvas) {
+  if (!canvas) return;
+  try {
+    const ctx = canvas.getContext && canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.width = 0;
+    canvas.height = 0;
+  } catch (e) {}
+}
+
+function revokeUrl(url) {
+  if (!url) return;
+  try { URL.revokeObjectURL(url); } catch (e) {}
+}
+
+function validateBatch(files, opts = {}) {
+  const errors = [];
+  const maxFile = (opts.maxFileMB || LIMITS.MAX_FILE_MB) * 1024 * 1024;
+  const maxBatch = (opts.maxBatchMB || LIMITS.MAX_BATCH_MB) * 1024 * 1024;
+  const maxFiles = opts.maxFiles || LIMITS.MAX_FILES;
+
+  if (files.length === 0) { errors.push('Не выбрано ни одного файла.'); return errors; }
+  if (files.length > maxFiles) errors.push(`Слишком много файлов: ${files.length} (максимум ${maxFiles}). Обработайте их партиями.`);
+  let total = 0;
+  for (const f of files) {
+    if (f.size > maxFile) errors.push(`«${f.name}» — ${(f.size / 1024 / 1024).toFixed(1)} МБ. Максимум ${opts.maxFileMB || LIMITS.MAX_FILE_MB} МБ на файл.`);
+    total += f.size;
+  }
+  if (total > maxBatch) errors.push(`Суммарный размер партии: ${(total / 1024 / 1024).toFixed(0)} МБ. Максимум ${opts.maxBatchMB || LIMITS.MAX_BATCH_MB} МБ.`);
+  return errors;
+}
+
+function yieldToBrowser(ms) { return new Promise(r => setTimeout(r, ms ?? LIMITS.YIELD_MS)); }
+
+function clearAllData() {
+  try {
+    if (Array.isArray(images)) {
+      images.forEach(it => { it.dataUrl = null; });
+      images.length = 0;
+      if (imgFilesEl) imgFilesEl.innerHTML = '';
+      if (convertBtn) convertBtn.disabled = true;
+    }
+    if (Array.isArray(resultImages)) {
+      resultImages.forEach(r => { revokeUrl(r.url); r.blob = null; r.url = null; });
+      resultImages.length = 0;
+      if (resultsEl) resultsEl.innerHTML = '';
+    }
+    if (Array.isArray(pdfFiles)) pdfFiles = [];
+    if (Array.isArray(docResults)) {
+      docResults.forEach(r => { r.blob = null; }); docResults.length = 0;
+      if (docResultsEl) docResultsEl.innerHTML = '';
+    }
+    if (Array.isArray(docFiles)) { docFiles.length = 0; if (docFilesEl) docFilesEl.innerHTML = ''; }
+    if (Array.isArray(epubResults)) {
+      epubResults.forEach(r => { r.blob = null; }); epubResults.length = 0;
+      if (epubResultsEl) epubResultsEl.innerHTML = '';
+    }
+    if (Array.isArray(epubFiles)) { epubFiles.length = 0; if (epubFilesEl) epubFilesEl.innerHTML = ''; }
+    if (Array.isArray(xlsxResults)) {
+      xlsxResults.forEach(r => { r.blob = null; }); xlsxResults.length = 0;
+      if (xlsxResultsEl) xlsxResultsEl.innerHTML = '';
+    }
+    if (Array.isArray(xlsxFiles)) { xlsxFiles.length = 0; if (xlsxFilesEl) xlsxFilesEl.innerHTML = ''; }
+    if (Array.isArray(ocrResults)) {
+      ocrResults.forEach(r => { r.blob = null; }); ocrResults.length = 0;
+      if (ocrResultsEl) ocrResultsEl.innerHTML = '';
+    }
+    if (Array.isArray(ocrFiles)) { ocrFiles.length = 0; if (ocrFilesEl) ocrFilesEl.innerHTML = ''; }
+    if (ocrTextPreview) { ocrTextPreview.value = ''; ocrTextPreview.classList.remove('show'); }
+    document.querySelectorAll('#downloadZipBtn, #docDownloadZipBtn, #epubZipBtn, #xlsxZipBtn, #ocrZipBtn').forEach(b => b.style.display = 'none');
+    document.querySelectorAll('.status').forEach(s => s.className = 'status');
+    document.querySelectorAll('.progress-bar').forEach(p => p.classList.remove('show'));
+  } catch (e) { console.warn('clearAllData error', e); }
+}
+
+const tabs = document.querySelectorAll('.tab');
+const panels = document.querySelectorAll('.panel');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    panels.forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+  tab.addEventListener('mousemove', (e) => {
+    const rect = tab.getBoundingClientRect();
+    tab.style.setProperty('--mx', ((e.clientX - rect.left) / rect.width * 100) + '%');
+    tab.style.setProperty('--my', ((e.clientY - rect.top) / rect.height * 100) + '%');
+  });
+});
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn');
+  if (!btn || btn.disabled) return;
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+  ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 700);
+});
+
+function showStatus(el, message, type = 'info') { el.textContent = message; el.className = 'status show ' + type; }
+function hideStatus(el) { el.className = 'status'; }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+function getFileExt(name) { return name.split('.').pop().toLowerCase(); }
+function stripHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return doc.body.textContent || '';
+}
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+function getFileIcon(ext) {
+  const icons = { docx: '📝', txt: '📃', md: '📋', pdf: '📕', html: '🌐', doc: '📘', epub: '📚', xlsx: '📊', xls: '📊', csv: '📈', jpg: '🖼️', jpeg: '🖼️', png: '🖼️', webp: '🖼️' };
+  return icons[ext] || '📄';
+}
+function download(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+async function htmlToPdfBlob(html) {
+  MemoryGuard.guard();
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;padding:50px;background:#ffffff;color:#000000;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+  await new Promise(r => setTimeout(r, 50));
+  let canvas = null;
+  try {
+    canvas = await html2canvas(container, { scale: 2, backgroundColor: '#ffffff', logging: false, useCORS: true });
+    MemoryGuard.guard();
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const pageW = 210, pageH = 297;
+    const imgW = pageW;
+    const imgH = canvas.height * (imgW / canvas.width);
+    const imgData = canvas.toDataURL('image/jpeg', 0.92);
+    let heightLeft = imgH, position = 0;
+    pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    let pageCount = 0;
+    while (heightLeft > 0) {
+      if (++pageCount > 200) throw new Error('Слишком много страниц в PDF');
+      position = heightLeft - imgH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+      MemoryGuard.guard();
+    }
+    return pdf.output('blob');
+  } finally {
+    if (document.body.contains(container)) document.body.removeChild(container);
+    releaseCanvas(canvas);
+  }
+}
+
+function wordWrapper(html) {
+  return `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Document</title><style>body{font-family:Arial,sans-serif;font-size:12pt;line-height:1.6;}p{margin:0 0 10pt 0;}h1,h2,h3{margin:14pt 0 8pt 0;}table{border-collapse:collapse;}td,th{border:1px solid #999;padding:6px;}</style></head><body>${html}</body></html>`;
+}
+
+document.getElementById('reloadBtn').addEventListener('click', () => location.reload());
+document.getElementById('clearMemBtn').addEventListener('click', () => {
+  clearAllData();
+  MemoryGuard.reset();
+  if (window.gc) { try { window.gc(); } catch (e) {} }
+  setTimeout(() => MemoryGuard.update(), 500);
+});
+
+/* ============ ФОТО → PDF ============ */
+const imgDrop = document.getElementById('imgDrop');
+const imgInput = document.getElementById('imgInput');
+const imgFilesEl = document.getElementById('imgFiles');
+const convertBtn = document.getElementById('convertBtn');
+const statusEl = document.getElementById('status');
+const progressBar = document.getElementById('progressBar');
+const progressFill = document.getElementById('progressFill');
+let images = [];
+
+imgDrop.addEventListener('click', () => imgInput.click());
+imgDrop.addEventListener('dragover', e => { e.preventDefault(); imgDrop.classList.add('dragover'); });
+imgDrop.addEventListener('dragleave', () => imgDrop.classList.remove('dragover'));
+imgDrop.addEventListener('drop', e => { e.preventDefault(); imgDrop.classList.remove('dragover'); handleImages(e.dataTransfer.files); });
+imgInput.addEventListener('change', e => handleImages(e.target.files));
+
+async function handleImages(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if (!files.length) return;
+  const errors = validateBatch([...images.map(i => i.file), ...files]);
+  if (errors.length) { showStatus(statusEl, '⚠️ ' + errors.join(' • '), 'warn'); return; }
+  hideStatus(statusEl);
+  for (const file of files) {
+    try {
+      MemoryGuard.guard();
+      const dataUrl = await readFileAsDataURL(file);
+      const img = await loadImage(dataUrl);
+      images.push({ file, dataUrl, width: img.naturalWidth, height: img.naturalHeight, name: file.name });
+    } catch (e) {
+      console.error(e); showStatus(statusEl, '❌ ' + e.message, 'error');
+      if (MemoryGuard.tripped) break;
+    }
+    await yieldToBrowser(0);
+  }
+  renderImages();
+}
+function renderImages() {
+  imgFilesEl.innerHTML = '';
+  images.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'file-item';
+    div.dataset.index = i;
+    div.innerHTML = `<img src="${item.dataUrl}" alt=""><span class="num">${i + 1}</span><button class="remove" data-index="${i}">×</button>`;
+    imgFilesEl.appendChild(div);
+  });
+  imgFilesEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const idx = +btn.dataset.index;
+      if (images[idx]) images[idx].dataUrl = null;
+      images.splice(idx, 1);
+      renderImages();
+    });
+  });
+  convertBtn.disabled = images.length === 0;
+}
+new Sortable(imgFilesEl, {
+  animation: 240, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
+  onEnd: (evt) => {
+    const [moved] = images.splice(evt.oldIndex, 1);
+    images.splice(evt.newIndex, 0, moved);
+    imgFilesEl.querySelectorAll('.file-item').forEach((el, i) => {
+      el.querySelector('.num').textContent = i + 1;
+      el.dataset.index = i;
+      const rm = el.querySelector('.remove');
+      if (rm) rm.dataset.index = i;
+    });
+  }
+});
+
+convertBtn.addEventListener('click', async () => {
+  if (!images.length) return;
+  convertBtn.disabled = true;
+  hideStatus(statusEl);
+  progressBar.classList.add('show');
+  progressFill.style.width = '0%';
+  try {
+    const { jsPDF } = window.jspdf;
+    const orientation = document.getElementById('orientation').value;
+    const pageSize = document.getElementById('pageSize').value;
+    let pdf = null;
+    for (let i = 0; i < images.length; i++) {
+      MemoryGuard.guard();
+      const item = images[i];
+      let pdfW, pdfH, orient;
+      if (pageSize === 'fit') {
+        pdfW = item.width * 25.4 / 96;
+        pdfH = item.height * 25.4 / 96;
+        orient = pdfW > pdfH ? 'l' : 'p';
+      } else {
+        const sizes = { a4: [210, 297], letter: [215.9, 279.4] };
+        const [w, h] = sizes[pageSize];
+        if (orientation === 'auto') orient = item.width > item.height ? 'l' : 'p';
+        else orient = orientation === 'landscape' ? 'l' : 'p';
+        pdfW = orient === 'l' ? h : w;
+        pdfH = orient === 'l' ? w : h;
+      }
+      if (!pdf) pdf = new jsPDF({ orientation: orient, unit: 'mm', format: [pdfW, pdfH] });
+      else pdf.addPage([pdfW, pdfH], orient);
+      if (pageSize === 'fit') {
+        pdf.addImage(item.dataUrl, 'JPEG', 0, 0, pdfW, pdfH);
+      } else {
+        const margin = 10;
+        const ratio = Math.min((pdfW - margin*2) / item.width, (pdfH - margin*2) / item.height);
+        const imgW = item.width * ratio, imgH = item.height * ratio;
+        pdf.addImage(item.dataUrl, 'JPEG', (pdfW - imgW)/2, (pdfH - imgH)/2, imgW, imgH);
+      }
+      progressFill.style.width = ((i + 1) / images.length * 100) + '%';
+      await yieldToBrowser();
+    }
+    pdf.save('photos.pdf');
+    images.forEach(it => { it.dataUrl = null; });
+    images.length = 0;
+    renderImages();
+    showStatus(statusEl, `✅ Готово! PDF скачан. Кэш очищен для экономии памяти.`, 'success');
+  } catch (err) {
+    console.error(err); showStatus(statusEl, '❌ ' + err.message, 'error');
+  } finally {
+    convertBtn.disabled = images.length === 0;
+    setTimeout(() => progressBar.classList.remove('show'), 1200);
+  }
+});
+
+/* ============ PDF → ФОТО ============ */
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const pdfDrop = document.getElementById('pdfDrop');
+const pdfInput = document.getElementById('pdfInput');
+const pdfConvertBtn = document.getElementById('pdfConvertBtn');
+const pdfStatus = document.getElementById('pdfStatus');
+const pdfProgressBar = document.getElementById('pdfProgressBar');
+const pdfProgressFill = document.getElementById('pdfProgressFill');
+const resultsEl = document.getElementById('results');
+const downloadZipBtn = document.getElementById('downloadZipBtn');
+let pdfFiles = [];
+let resultImages = [];
+
+pdfDrop.addEventListener('click', () => pdfInput.click());
+pdfDrop.addEventListener('dragover', e => { e.preventDefault(); pdfDrop.classList.add('dragover'); });
+pdfDrop.addEventListener('dragleave', () => pdfDrop.classList.remove('dragover'));
+pdfDrop.addEventListener('drop', e => { e.preventDefault(); pdfDrop.classList.remove('dragover'); handlePdfs(e.dataTransfer.files); });
+pdfInput.addEventListener('change', e => handlePdfs(e.target.files));
+
+function handlePdfs(fileList) {
+  const files = Array.from(fileList).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (!files.length) return;
+  const errors = validateBatch(files, { maxFiles: 10 });
+  if (errors.length) { showStatus(pdfStatus, '⚠️ ' + errors.join(' • '), 'warn'); pdfConvertBtn.disabled = true; return; }
+  pdfFiles = files;
+  showStatus(pdfStatus, `Выбрано файлов: ${files.length}`, 'info');
+  pdfConvertBtn.disabled = false;
+}
+pdfConvertBtn.addEventListener('click', async () => {
+  if (!pdfFiles.length) return;
+  pdfConvertBtn.disabled = true;
+  resultImages.forEach(r => { revokeUrl(r.url); r.blob = null; });
+  resultImages = [];
+  resultsEl.innerHTML = '';
+  downloadZipBtn.style.display = 'none';
+  hideStatus(pdfStatus);
+  pdfProgressBar.classList.add('show');
+  pdfProgressFill.style.width = '0%';
+  const format = document.getElementById('imgFormat').value;
+  const scale = parseFloat(document.getElementById('imgScale').value);
+  const ext = format === 'image/png' ? 'png' : 'jpg';
+  try {
+    let totalPages = 0, processed = 0;
+    const docs = [];
+    for (const file of pdfFiles) {
+      MemoryGuard.guard();
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      if (pdf.numPages > LIMITS.MAX_PAGES_PER_PDF) throw new Error(`«${file.name}» — ${pdf.numPages} страниц, максимум ${LIMITS.MAX_PAGES_PER_PDF}`);
+      docs.push({ pdf, name: file.name.replace(/\.pdf$/i, '') });
+      totalPages += pdf.numPages;
+    }
+    for (const { pdf, name } of docs) {
+      for (let p = 1; p <= pdf.numPages; p++) {
+        MemoryGuard.guard();
+        const page = await pdf.getPage(p);
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        try {
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+          const blob = await new Promise(r => canvas.toBlob(r, format, 0.92));
+          const url = URL.createObjectURL(blob);
+          const fname = `${name}_page_${String(p).padStart(2, '0')}.${ext}`;
+          resultImages.push({ blob, url, name: fname });
+          const item = document.createElement('div');
+          item.className = 'result-item';
+          item.innerHTML = `<img src="${url}" alt=""><a href="${url}" download="${fname}">${fname}</a>`;
+          resultsEl.appendChild(item);
+        } finally { releaseCanvas(canvas); }
+        processed++;
+        pdfProgressFill.style.width = (processed / totalPages * 100) + '%';
+        await yieldToBrowser();
+      }
+      try { pdf.destroy && pdf.destroy(); } catch (e) {}
+    }
+    showStatus(pdfStatus, `✅ Готово! Создано изображений: ${resultImages.length}`, 'success');
+    if (resultImages.length > 1) downloadZipBtn.style.display = 'block';
+  } catch (err) {
+    console.error(err); showStatus(pdfStatus, '❌ ' + err.message, 'error');
+  } finally {
+    pdfConvertBtn.disabled = false;
+    setTimeout(() => pdfProgressBar.classList.remove('show'), 1200);
+  }
+});
+downloadZipBtn.addEventListener('click', async () => {
+  if (!resultImages.length) return;
+  const zip = new JSZip();
+  resultImages.forEach(img => zip.file(img.name, img.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  download(blob, 'images.zip');
+  resultImages.forEach(r => { revokeUrl(r.url); r.blob = null; });
+  resultImages = [];
+  resultsEl.innerHTML = '';
+  downloadZipBtn.style.display = 'none';
+  showStatus(pdfStatus, '✅ ZIP скачан. Кэш очищен.', 'success');
+  MemoryGuard.update();
+});
+
+/* ============ ДОКУМЕНТЫ ============ */
+const docDrop = document.getElementById('docDrop');
+const docInput = document.getElementById('docInput');
+const docFilesEl = document.getElementById('docFiles');
+const docConvertBtn = document.getElementById('docConvertBtn');
+const docStatus = document.getElementById('docStatus');
+const docProgressBar = document.getElementById('docProgressBar');
+const docProgressFill = document.getElementById('docProgressFill');
+const docResultsEl = document.getElementById('docResults');
+const docDownloadZipBtn = document.getElementById('docDownloadZipBtn');
+const docTargetFormat = document.getElementById('docTargetFormat');
+let docFiles = [];
+let docResults = [];
+
+docDrop.addEventListener('click', () => docInput.click());
+docDrop.addEventListener('dragover', e => { e.preventDefault(); docDrop.classList.add('dragover'); });
+docDrop.addEventListener('dragleave', () => docDrop.classList.remove('dragover'));
+docDrop.addEventListener('drop', e => { e.preventDefault(); docDrop.classList.remove('dragover'); handleDocs(e.dataTransfer.files); });
+docInput.addEventListener('change', e => handleDocs(e.target.files));
+
+function handleDocs(fileList) {
+  const allowed = ['docx', 'txt', 'md', 'pdf'];
+  const files = Array.from(fileList).filter(f => allowed.includes(getFileExt(f.name)));
+  if (!files.length) return;
+  const errors = validateBatch([...docFiles.map(x => x.file), ...files]);
+  if (errors.length) { showStatus(docStatus, '⚠️ ' + errors.join(' • '), 'warn'); return; }
+  for (const f of files) docFiles.push({ file: f, id: Math.random().toString(36).slice(2) });
+  renderDocFiles();
+}
+function renderDocFiles() {
+  docFilesEl.innerHTML = '';
+  docFiles.forEach(item => {
+    const ext = getFileExt(item.file.name);
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.dataset.id = item.id;
+    div.innerHTML = `
+      <span class="drag-handle">⋮⋮</span>
+      <span class="icon">${getFileIcon(ext)}</span>
+      <div class="info">
+        <div class="name">${escapeHtml(item.file.name)}</div>
+        <div class="meta">${ext.toUpperCase()} · ${formatSize(item.file.size)}</div>
+      </div>
+      <button class="remove" data-id="${item.id}">×</button>
+    `;
+    docFilesEl.appendChild(div);
+  });
+  docFilesEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      docFiles = docFiles.filter(x => x.id !== btn.dataset.id);
+      renderDocFiles();
+    });
+  });
+  docConvertBtn.disabled = docFiles.length === 0;
+}
+new Sortable(docFilesEl, {
+  animation: 240, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+  ghostClass: 'sortable-ghost', handle: '.doc-item',
+  onEnd: (evt) => {
+    const [moved] = docFiles.splice(evt.oldIndex, 1);
+    docFiles.splice(evt.newIndex, 0, moved);
+  }
+});
+
+async function docxToHtml(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.convertToHtml({ arrayBuffer });
+  return result.value;
+}
+async function txtToHtml(file) {
+  const text = await file.text();
+  return text.split(/\n\n+/).map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('') || '<p></p>';
+}
+async function mdToHtml(file) { return marked.parse(await file.text()); }
+async function pdfToText(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let text = '';
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      MemoryGuard.guard();
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it => it.str).join(' ') + '\n\n';
+      if (i % 20 === 0) await yieldToBrowser(0);
+    }
+  } finally { try { pdf.destroy && pdf.destroy(); } catch (e) {} }
+  return text.trim();
+}
+
+async function convertDocument(item, target) {
+  const file = item.file;
+  const ext = getFileExt(file.name);
+  const baseName = file.name.replace(/\.[^.]+$/, '');
+  MemoryGuard.guard();
+  if (ext === 'pdf') {
+    if (target === 'txt') {
+      const text = await pdfToText(file);
+      return { blob: new Blob([text], { type: 'text/plain;charset=utf-8' }), name: baseName + '.txt' };
+    }
+    throw new Error(`PDF → ${target.toUpperCase()} не поддерживается`);
+  }
+  let html = '';
+  if (ext === 'docx') html = await docxToHtml(file);
+  else if (ext === 'txt') html = await txtToHtml(file);
+  else if (ext === 'md') html = await mdToHtml(file);
+  else throw new Error('Неподдерживаемый формат: ' + ext);
+
+  if (target === 'html') {
+    const fullHtml = `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>${escapeHtml(baseName)}</title><style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;color:#222;}img{max-width:100%;}table{border-collapse:collapse;}td,th{border:1px solid #ccc;padding:6px;}</style></head><body>${html}</body></html>`;
+    return { blob: new Blob([fullHtml], { type: 'text/html;charset=utf-8' }), name: baseName + '.html' };
+  }
+  if (target === 'txt') return { blob: new Blob([stripHtml(html)], { type: 'text/plain;charset=utf-8' }), name: baseName + '.txt' };
+  if (target === 'pdf') return { blob: await htmlToPdfBlob(html), name: baseName + '.pdf' };
+  if (target === 'doc') return { blob: new Blob(['\ufeff', wordWrapper(html)], { type: 'application/msword' }), name: baseName + '.doc' };
+  throw new Error('Неизвестный формат: ' + target);
+}
+
+docConvertBtn.addEventListener('click', async () => {
+  if (!docFiles.length) return;
+  docConvertBtn.disabled = true;
+  docResults.forEach(r => { r.blob = null; });
+  docResults = []; docResultsEl.innerHTML = '';
+  docDownloadZipBtn.style.display = 'none';
+  hideStatus(docStatus);
+  docProgressBar.classList.add('show');
+  docProgressFill.style.width = '0%';
+  const target = docTargetFormat.value;
+  try {
+    let done = 0;
+    for (const item of docFiles) {
+      MemoryGuard.guard();
+      try {
+        const result = await convertDocument(item, target);
+        docResults.push(result);
+        const url = URL.createObjectURL(result.blob);
+        const ext = getFileExt(result.name);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = `<div class="file-icon">${getFileIcon(ext)}</div><a href="${url}" download="${escapeHtml(result.name)}">${escapeHtml(result.name)}</a><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${formatSize(result.blob.size)}</div>`;
+        docResultsEl.appendChild(div);
+      } catch (e) {
+        console.error(e);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.style.borderColor = 'rgba(239,68,68,0.4)';
+        div.innerHTML = `<div class="file-icon">⚠️</div><div style="font-size:0.8rem;color:#fca5a5;word-break:break-word;">${escapeHtml(item.file.name)}</div><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${escapeHtml(e.message)}</div>`;
+        docResultsEl.appendChild(div);
+        if (MemoryGuard.tripped) break;
+      }
+      done++;
+      docProgressFill.style.width = (done / docFiles.length * 100) + '%';
+      await yieldToBrowser();
+    }
+    if (docResults.length) {
+      showStatus(docStatus, `✅ Готово! Сконвертировано: ${docResults.length} из ${docFiles.length}`, 'success');
+      if (docResults.length > 1) docDownloadZipBtn.style.display = 'block';
+    } else showStatus(docStatus, '❌ Не удалось сконвертировать ни один файл', 'error');
+  } catch (err) { showStatus(docStatus, '❌ ' + err.message, 'error'); }
+  finally {
+    docConvertBtn.disabled = false;
+    setTimeout(() => docProgressBar.classList.remove('show'), 1200);
+  }
+});
+docDownloadZipBtn.addEventListener('click', async () => {
+  if (!docResults.length) return;
+  const zip = new JSZip();
+  docResults.forEach(r => zip.file(r.name, r.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  download(blob, 'documents.zip');
+  docResults.forEach(r => { r.blob = null; });
+  docResults = []; docResultsEl.innerHTML = '';
+  docDownloadZipBtn.style.display = 'none';
+  showStatus(docStatus, '✅ ZIP скачан. Кэш очищен.', 'success');
+  MemoryGuard.update();
+});
+
+/* ============ EPUB ↔ PDF ============ */
+const epubDrop = document.getElementById('epubDrop');
+const epubInput = document.getElementById('epubInput');
+const epubFilesEl = document.getElementById('epubFiles');
+const epubConvertBtn = document.getElementById('epubConvertBtn');
+const epubStatus = document.getElementById('epubStatus');
+const epubProgressBar = document.getElementById('epubProgressBar');
+const epubProgressFill = document.getElementById('epubProgressFill');
+const epubResultsEl = document.getElementById('epubResults');
+const epubZipBtn = document.getElementById('epubZipBtn');
+const epubTarget = document.getElementById('epubTarget');
+let epubFiles = [];
+let epubResults = [];
+
+epubDrop.addEventListener('click', () => epubInput.click());
+epubDrop.addEventListener('dragover', e => { e.preventDefault(); epubDrop.classList.add('dragover'); });
+epubDrop.addEventListener('dragleave', () => epubDrop.classList.remove('dragover'));
+epubDrop.addEventListener('drop', e => { e.preventDefault(); epubDrop.classList.remove('dragover'); handleEpub(e.dataTransfer.files); });
+epubInput.addEventListener('change', e => handleEpub(e.target.files));
+
+function handleEpub(fileList) {
+  const allowed = ['epub', 'pdf'];
+  const files = Array.from(fileList).filter(f => allowed.includes(getFileExt(f.name)));
+  if (!files.length) return;
+  const errors = validateBatch([...epubFiles.map(x => x.file), ...files], { maxFiles: 15 });
+  if (errors.length) { showStatus(epubStatus, '⚠️ ' + errors.join(' • '), 'warn'); return; }
+  for (const f of files) epubFiles.push({ file: f, id: Math.random().toString(36).slice(2) });
+  renderEpubFiles();
+}
+function renderEpubFiles() {
+  epubFilesEl.innerHTML = '';
+  epubFiles.forEach(item => {
+    const ext = getFileExt(item.file.name);
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.dataset.id = item.id;
+    div.innerHTML = `
+      <span class="drag-handle">⋮⋮</span>
+      <span class="icon">${getFileIcon(ext)}</span>
+      <div class="info">
+        <div class="name">${escapeHtml(item.file.name)}</div>
+        <div class="meta">${ext.toUpperCase()} · ${formatSize(item.file.size)}</div>
+      </div>
+      <button class="remove" data-id="${item.id}">×</button>
+    `;
+    epubFilesEl.appendChild(div);
+  });
+  epubFilesEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      epubFiles = epubFiles.filter(x => x.id !== btn.dataset.id);
+      renderEpubFiles();
+    });
+  });
+  epubConvertBtn.disabled = epubFiles.length === 0;
+}
+new Sortable(epubFilesEl, {
+  animation: 240, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', ghostClass: 'sortable-ghost',
+  onEnd: (evt) => {
+    const [moved] = epubFiles.splice(evt.oldIndex, 1);
+    epubFiles.splice(evt.newIndex, 0, moved);
+  }
+});
+
+async function epubToHtml(file) {
+  MemoryGuard.guard();
+  const zip = await JSZip.loadAsync(file);
+  const containerFile = zip.file('META-INF/container.xml');
+  if (!containerFile) throw new Error('Не найден META-INF/container.xml');
+  const containerXml = await containerFile.async('string');
+  const containerDoc = new DOMParser().parseFromString(containerXml, 'application/xml');
+  const rootfile = containerDoc.querySelector('rootfile');
+  if (!rootfile) throw new Error('Не найден rootfile в container.xml');
+  const opfPath = rootfile.getAttribute('full-path');
+  const opfXml = await zip.file(opfPath).async('string');
+  const opfDoc = new DOMParser().parseFromString(opfXml, 'application/xml');
+  const titleEl = opfDoc.querySelector('metadata title, dc\\:title, title');
+  const bookTitle = titleEl ? titleEl.textContent.trim() : 'EPUB Book';
+  const manifest = {};
+  opfDoc.querySelectorAll('manifest > item').forEach(item => { manifest[item.getAttribute('id')] = item.getAttribute('href'); });
+  const spine = [];
+  opfDoc.querySelectorAll('spine > itemref').forEach(ref => { const id = ref.getAttribute('idref'); if (manifest[id]) spine.push(manifest[id]); });
+  const basePath = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
+  let allHtml = `<h1 style="font-size:26px;margin-bottom:20px;border-bottom:2px solid #444;padding-bottom:10px;">${escapeHtml(bookTitle)}</h1>`;
+  let chapterCount = 0;
+  for (const href of spine) {
+    MemoryGuard.guard();
+    if (++chapterCount > 300) throw new Error('Слишком много глав в EPUB');
+    const fullPath = basePath + href;
+    const fileInZip = zip.file(fullPath) || zip.file(decodeURIComponent(fullPath));
+    if (!fileInZip) continue;
+    const html = await fileInZip.async('string');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const imgEls = doc.querySelectorAll('img');
+    for (const img of imgEls) {
+      const src = img.getAttribute('src');
+      if (!src || src.startsWith('http') || src.startsWith('data:')) continue;
+      const imgPath = basePath + decodeURIComponent(new URL(src, 'file:///' + fullPath).pathname).replace(/^\//, '');
+      const imgFile = zip.file(imgPath) || zip.file(basePath + src);
+      if (imgFile) {
+        const blob = await imgFile.async('blob');
+        const ext = getFileExt(imgPath);
+        const mime = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : ext === 'svg' ? 'image/svg+xml' : 'image/jpeg';
+        const dataUrl = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(new Blob([blob], { type: mime })); });
+        img.setAttribute('src', dataUrl);
+      }
+    }
+    allHtml += `<div style="page-break-before:always;margin-top:30px;">${doc.body.innerHTML}</div>`;
+    if (chapterCount % 5 === 0) await yieldToBrowser(0);
+  }
+  return allHtml;
+}
+
+async function pdfToHtmlForEpub(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let html = '';
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      MemoryGuard.guard();
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const text = content.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+      html += `<h2>Страница ${i}</h2><p>${escapeHtml(text)}</p>`;
+      if (i % 20 === 0) await yieldToBrowser(0);
+    }
+  } finally { try { pdf.destroy && pdf.destroy(); } catch (e) {} }
+  return html;
+}
+
+async function buildEpub(title, contentHtml) {
+  const zip = new JSZip();
+  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+  zip.file('META-INF/container.xml', `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+<rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles>
+</container>`);
+  const uid = 'urn:uuid:' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random());
+  zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid">
+<metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+<dc:title>${escapeHtml(title)}</dc:title>
+<dc:identifier id="bookid">${uid}</dc:identifier>
+<dc:language>ru</dc:language>
+<meta property="dcterms:modified">${new Date().toISOString().slice(0,19)}Z</meta>
+</metadata>
+<manifest><item id="content" href="content.xhtml" media-type="application/xhtml+xml"/></manifest>
+<spine><itemref idref="content"/></spine>
+</package>`);
+  zip.file('OEBPS/content.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>${escapeHtml(title)}</title>
+<style>body{font-family:serif;line-height:1.6;padding:1em;}h1,h2,h3{margin:1em 0 0.5em;}p{margin:0 0 1em;text-indent:1.5em;}</style>
+</head>
+<body>${contentHtml}</body>
+</html>`);
+  return await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+}
+
+epubConvertBtn.addEventListener('click', async () => {
+  if (!epubFiles.length) return;
+  epubConvertBtn.disabled = true;
+  epubResults.forEach(r => { r.blob = null; });
+  epubResults = []; epubResultsEl.innerHTML = '';
+  epubZipBtn.style.display = 'none';
+  hideStatus(epubStatus);
+  epubProgressBar.classList.add('show');
+  epubProgressFill.style.width = '0%';
+  const target = epubTarget.value;
+  try {
+    let done = 0;
+    for (const item of epubFiles) {
+      MemoryGuard.guard();
+      try {
+        const ext = getFileExt(item.file.name);
+        const baseName = item.file.name.replace(/\.[^.]+$/, '');
+        let result;
+        if (ext === 'epub' && target === 'pdf') {
+          const html = await epubToHtml(item.file);
+          const blob = await htmlToPdfBlob(html);
+          result = { blob, name: baseName + '.pdf' };
+        } else if (ext === 'pdf' && target === 'epub') {
+          const html = await pdfToHtmlForEpub(item.file);
+          const blob = await buildEpub(baseName, html);
+          result = { blob, name: baseName + '.epub' };
+        } else if (ext === 'pdf' && target === 'pdf') {
+          const html = await pdfToHtmlForEpub(item.file);
+          const blob = await htmlToPdfBlob(html);
+          result = { blob, name: baseName + '_rebuilt.pdf' };
+        } else throw new Error(`Сочетание ${ext.toUpperCase()} → ${target.toUpperCase()} не поддерживается`);
+
+        epubResults.push(result);
+        const url = URL.createObjectURL(result.blob);
+        const rExt = getFileExt(result.name);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = `<div class="file-icon">${getFileIcon(rExt)}</div><a href="${url}" download="${escapeHtml(result.name)}">${escapeHtml(result.name)}</a><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${formatSize(result.blob.size)}</div>`;
+        epubResultsEl.appendChild(div);
+      } catch (e) {
+        console.error(e);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.style.borderColor = 'rgba(239,68,68,0.4)';
+        div.innerHTML = `<div class="file-icon">⚠️</div><div style="font-size:0.8rem;color:#fca5a5;">${escapeHtml(item.file.name)}</div><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${escapeHtml(e.message)}</div>`;
+        epubResultsEl.appendChild(div);
+        if (MemoryGuard.tripped) break;
+      }
+      done++;
+      epubProgressFill.style.width = (done / epubFiles.length * 100) + '%';
+      await yieldToBrowser();
+    }
+    if (epubResults.length) {
+      showStatus(epubStatus, `✅ Готово! Сконвертировано: ${epubResults.length} из ${epubFiles.length}`, 'success');
+      if (epubResults.length > 1) epubZipBtn.style.display = 'block';
+    } else showStatus(epubStatus, '❌ Ничего не сконвертировано', 'error');
+  } catch (err) { showStatus(epubStatus, '❌ ' + err.message, 'error'); }
+  finally {
+    epubConvertBtn.disabled = false;
+    setTimeout(() => epubProgressBar.classList.remove('show'), 1200);
+  }
+});
+epubZipBtn.addEventListener('click', async () => {
+  const zip = new JSZip();
+  epubResults.forEach(r => zip.file(r.name, r.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  download(blob, 'books.zip');
+  epubResults.forEach(r => { r.blob = null; });
+  epubResults = []; epubResultsEl.innerHTML = '';
+  epubZipBtn.style.display = 'none';
+  showStatus(epubStatus, '✅ ZIP скачан. Кэш очищен.', 'success');
+  MemoryGuard.update();
+});
+
+/* ============ EXCEL ============ */
+const xlsxDrop = document.getElementById('xlsxDrop');
+const xlsxInput = document.getElementById('xlsxInput');
+const xlsxFilesEl = document.getElementById('xlsxFiles');
+const xlsxConvertBtn = document.getElementById('xlsxConvertBtn');
+const xlsxStatus = document.getElementById('xlsxStatus');
+const xlsxProgressBar = document.getElementById('xlsxProgressBar');
+const xlsxProgressFill = document.getElementById('xlsxProgressFill');
+const xlsxResultsEl = document.getElementById('xlsxResults');
+const xlsxZipBtn = document.getElementById('xlsxZipBtn');
+const xlsxTarget = document.getElementById('xlsxTarget');
+let xlsxFiles = [];
+let xlsxResults = [];
+
+xlsxDrop.addEventListener('click', () => xlsxInput.click());
+xlsxDrop.addEventListener('dragover', e => { e.preventDefault(); xlsxDrop.classList.add('dragover'); });
+xlsxDrop.addEventListener('dragleave', () => xlsxDrop.classList.remove('dragover'));
+xlsxDrop.addEventListener('drop', e => { e.preventDefault(); xlsxDrop.classList.remove('dragover'); handleXlsx(e.dataTransfer.files); });
+xlsxInput.addEventListener('change', e => handleXlsx(e.target.files));
+
+function handleXlsx(fileList) {
+  const allowed = ['xlsx', 'xls', 'csv'];
+  const files = Array.from(fileList).filter(f => allowed.includes(getFileExt(f.name)));
+  if (!files.length) return;
+  const errors = validateBatch([...xlsxFiles.map(x => x.file), ...files]);
+  if (errors.length) { showStatus(xlsxStatus, '⚠️ ' + errors.join(' • '), 'warn'); return; }
+  for (const f of files) xlsxFiles.push({ file: f, id: Math.random().toString(36).slice(2) });
+  renderXlsxFiles();
+}
+function renderXlsxFiles() {
+  xlsxFilesEl.innerHTML = '';
+  xlsxFiles.forEach(item => {
+    const ext = getFileExt(item.file.name);
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.dataset.id = item.id;
+    div.innerHTML = `
+      <span class="drag-handle">⋮⋮</span>
+      <span class="icon">${getFileIcon(ext)}</span>
+      <div class="info">
+        <div class="name">${escapeHtml(item.file.name)}</div>
+        <div class="meta">${ext.toUpperCase()} · ${formatSize(item.file.size)}</div>
+      </div>
+      <button class="remove" data-id="${item.id}">×</button>
+    `;
+    xlsxFilesEl.appendChild(div);
+  });
+  xlsxFilesEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      xlsxFiles = xlsxFiles.filter(x => x.id !== btn.dataset.id);
+      renderXlsxFiles();
+    });
+  });
+  xlsxConvertBtn.disabled = xlsxFiles.length === 0;
+}
+new Sortable(xlsxFilesEl, {
+  animation: 240, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', ghostClass: 'sortable-ghost',
+  onEnd: (evt) => {
+    const [moved] = xlsxFiles.splice(evt.oldIndex, 1);
+    xlsxFiles.splice(evt.newIndex, 0, moved);
+  }
+});
+
+xlsxConvertBtn.addEventListener('click', async () => {
+  if (!xlsxFiles.length) return;
+  xlsxConvertBtn.disabled = true;
+  xlsxResults.forEach(r => { r.blob = null; });
+  xlsxResults = []; xlsxResultsEl.innerHTML = '';
+  xlsxZipBtn.style.display = 'none';
+  hideStatus(xlsxStatus);
+  xlsxProgressBar.classList.add('show');
+  xlsxProgressFill.style.width = '0%';
+  const target = xlsxTarget.value;
+  try {
+    let done = 0;
+    for (const item of xlsxFiles) {
+      MemoryGuard.guard();
+      const baseName = item.file.name.replace(/\.[^.]+$/, '');
+      try {
+        const data = await item.file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' });
+        for (const sheetName of wb.SheetNames) {
+          MemoryGuard.guard();
+          const ws = wb.Sheets[sheetName];
+          const safeSheet = sheetName.replace(/[\\/:*?"<>|]/g, '_');
+          if (target === 'csv') {
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            const fname = `${baseName}_${safeSheet}.csv`;
+            const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+            xlsxResults.push({ blob, name: fname }); renderXlsxResult(blob, fname);
+          } else if (target === 'html') {
+            const tableHtml = XLSX.utils.sheet_to_html(ws, { id: 'table', editable: false });
+            const fullHtml = `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><title>${escapeHtml(baseName)} — ${escapeHtml(sheetName)}</title><style>body{font-family:Arial,sans-serif;padding:30px;background:#f8fafc;color:#222;}table{border-collapse:collapse;background:white;box-shadow:0 2px 8px rgba(0,0,0,0.1);}td,th{border:1px solid #cbd5e1;padding:8px 12px;font-size:14px;}tr:nth-child(even){background:#f1f5f9;}h1{font-size:20px;margin-bottom:16px;}</style></head><body><h1>${escapeHtml(baseName)} — ${escapeHtml(sheetName)}</h1>${tableHtml}</body></html>`;
+            const fname = `${baseName}_${safeSheet}.html`;
+            const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+            xlsxResults.push({ blob, name: fname }); renderXlsxResult(blob, fname);
+          } else if (target === 'pdf') {
+            const tableHtml = XLSX.utils.sheet_to_html(ws, { id: 'table', editable: false });
+            const wrapped = `<h1 style="font-size:20px;margin-bottom:14px;">${escapeHtml(baseName)} — ${escapeHtml(sheetName)}</h1>${tableHtml}`;
+            const blob = await htmlToPdfBlob(wrapped);
+            const fname = `${baseName}_${safeSheet}.pdf`;
+            xlsxResults.push({ blob, name: fname }); renderXlsxResult(blob, fname);
+          }
+          await yieldToBrowser(0);
+        }
+      } catch (e) {
+        console.error(e);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.style.borderColor = 'rgba(239,68,68,0.4)';
+        div.innerHTML = `<div class="file-icon">⚠️</div><div style="font-size:0.8rem;color:#fca5a5;">${escapeHtml(item.file.name)}</div><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${escapeHtml(e.message)}</div>`;
+        xlsxResultsEl.appendChild(div);
+        if (MemoryGuard.tripped) break;
+      }
+      done++;
+      xlsxProgressFill.style.width = (done / xlsxFiles.length * 100) + '%';
+      await yieldToBrowser();
+    }
+    if (xlsxResults.length) {
+      showStatus(xlsxStatus, `✅ Готово! Создано файлов: ${xlsxResults.length}`, 'success');
+      if (xlsxResults.length > 1) xlsxZipBtn.style.display = 'block';
+    } else showStatus(xlsxStatus, '❌ Ничего не сконвертировано', 'error');
+  } catch (err) { showStatus(xlsxStatus, '❌ ' + err.message, 'error'); }
+  finally {
+    xlsxConvertBtn.disabled = false;
+    setTimeout(() => xlsxProgressBar.classList.remove('show'), 1200);
+  }
+});
+function renderXlsxResult(blob, fname) {
+  const url = URL.createObjectURL(blob);
+  const ext = getFileExt(fname);
+  const div = document.createElement('div');
+  div.className = 'result-item';
+  div.innerHTML = `<div class="file-icon">${getFileIcon(ext)}</div><a href="${url}" download="${escapeHtml(fname)}">${escapeHtml(fname)}</a><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${formatSize(blob.size)}</div>`;
+  xlsxResultsEl.appendChild(div);
+}
+xlsxZipBtn.addEventListener('click', async () => {
+  const zip = new JSZip();
+  xlsxResults.forEach(r => zip.file(r.name, r.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  download(blob, 'tables.zip');
+  xlsxResults.forEach(r => { r.blob = null; });
+  xlsxResults = []; xlsxResultsEl.innerHTML = '';
+  xlsxZipBtn.style.display = 'none';
+  showStatus(xlsxStatus, '✅ ZIP скачан. Кэш очищен.', 'success');
+  MemoryGuard.update();
+});
+
+/* ============ OCR ============ */
+const ocrDrop = document.getElementById('ocrDrop');
+const ocrInput = document.getElementById('ocrInput');
+const ocrFilesEl = document.getElementById('ocrFiles');
+const ocrConvertBtn = document.getElementById('ocrConvertBtn');
+const ocrStatus = document.getElementById('ocrStatus');
+const ocrProgressBar = document.getElementById('ocrProgressBar');
+const ocrProgressFill = document.getElementById('ocrProgressFill');
+const ocrResultsEl = document.getElementById('ocrResults');
+const ocrZipBtn = document.getElementById('ocrZipBtn');
+const ocrLang = document.getElementById('ocrLang');
+const ocrOutput = document.getElementById('ocrOutput');
+const ocrTextPreview = document.getElementById('ocrTextPreview');
+let ocrFiles = [];
+let ocrResults = [];
+let currentOcrWorker = null;
+
+ocrDrop.addEventListener('click', () => ocrInput.click());
+ocrDrop.addEventListener('dragover', e => { e.preventDefault(); ocrDrop.classList.add('dragover'); });
+ocrDrop.addEventListener('dragleave', () => ocrDrop.classList.remove('dragover'));
+ocrDrop.addEventListener('drop', e => { e.preventDefault(); ocrDrop.classList.remove('dragover'); handleOcr(e.dataTransfer.files); });
+ocrInput.addEventListener('change', e => handleOcr(e.target.files));
+
+function handleOcr(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (!files.length) return;
+  const errors = validateBatch([...ocrFiles.map(x => x.file), ...files], { maxFileMB: 50, maxBatchMB: 150, maxFiles: 15 });
+  if (errors.length) { showStatus(ocrStatus, '⚠️ ' + errors.join(' • '), 'warn'); return; }
+  for (const f of files) ocrFiles.push({ file: f, id: Math.random().toString(36).slice(2) });
+  renderOcrFiles();
+}
+function renderOcrFiles() {
+  ocrFilesEl.innerHTML = '';
+  ocrFiles.forEach(item => {
+    const ext = getFileExt(item.file.name);
+    const div = document.createElement('div');
+    div.className = 'doc-item';
+    div.dataset.id = item.id;
+    div.innerHTML = `
+      <span class="drag-handle">⋮⋮</span>
+      <span class="icon">${getFileIcon(ext)}</span>
+      <div class="info">
+        <div class="name">${escapeHtml(item.file.name)}</div>
+        <div class="meta">${ext.toUpperCase()} · ${formatSize(item.file.size)}</div>
+      </div>
+      <button class="remove" data-id="${item.id}">×</button>
+    `;
+    ocrFilesEl.appendChild(div);
+  });
+  ocrFilesEl.querySelectorAll('.remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      ocrFiles = ocrFiles.filter(x => x.id !== btn.dataset.id);
+      renderOcrFiles();
+    });
+  });
+  ocrConvertBtn.disabled = ocrFiles.length === 0;
+}
+new Sortable(ocrFilesEl, {
+  animation: 240, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', ghostClass: 'sortable-ghost',
+  onEnd: (evt) => {
+    const [moved] = ocrFiles.splice(evt.oldIndex, 1);
+    ocrFiles.splice(evt.newIndex, 0, moved);
+  }
+});
+
+async function ocrPdfToText(file, lang, onProgress) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const total = pdf.numPages;
+  if (total > 100) throw new Error(`PDF слишком длинный для OCR: ${total} стр. (макс. 100)`);
+  let text = '';
+  const worker = await Tesseract.createWorker(lang, 1, {
+    logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress); }
+  });
+  currentOcrWorker = worker;
+  try {
+    for (let i = 1; i <= total; i++) {
+      MemoryGuard.guard();
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      try {
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const dataUrl = canvas.toDataURL('image/png');
+        const { data } = await worker.recognize(dataUrl);
+        text += `\n\n=== Страница ${i} ===\n\n${data.text}`;
+      } finally { releaseCanvas(canvas); }
+      if (onProgress) onProgress((i / total) * 100);
+      await yieldToBrowser(0);
+    }
+  } finally {
+    try { await worker.terminate(); } catch (e) {}
+    currentOcrWorker = null;
+    try { pdf.destroy && pdf.destroy(); } catch (e) {}
+  }
+  return text.trim();
+}
+
+async function ocrImageToText(file, lang, onProgress) {
+  const dataUrl = await readFileAsDataURL(file);
+  const worker = await Tesseract.createWorker(lang, 1, {
+    logger: m => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress * 100); }
+  });
+  currentOcrWorker = worker;
+  try {
+    const { data } = await worker.recognize(dataUrl);
+    return data.text.trim();
+  } finally {
+    try { await worker.terminate(); } catch (e) {}
+    currentOcrWorker = null;
+  }
+}
+
+async function textToPdfBlob(text, title) {
+  const paragraphs = text.split(/\n\n+/).map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`).join('') || '<p></p>';
+  const html = `<h1 style="font-size:20px;margin-bottom:14px;">${escapeHtml(title)}</h1>${paragraphs}`;
+  return await htmlToPdfBlob(html);
+}
+
+ocrConvertBtn.addEventListener('click', async () => {
+  if (!ocrFiles.length) return;
+  ocrConvertBtn.disabled = true;
+  ocrResults.forEach(r => { r.blob = null; });
+  ocrResults = []; ocrResultsEl.innerHTML = '';
+  ocrZipBtn.style.display = 'none';
+  hideStatus(ocrStatus);
+  ocrTextPreview.value = ''; ocrTextPreview.classList.remove('show');
+  ocrProgressBar.classList.add('show');
+  ocrProgressFill.style.width = '0%';
+  const lang = ocrLang.value;
+  const output = ocrOutput.value;
+  showStatus(ocrStatus, `⏳ Инициализация OCR (${lang})… Первый запуск может занять до минуты`, 'info');
+  try {
+    let done = 0;
+    let allText = '';
+    for (const item of ocrFiles) {
+      MemoryGuard.guard();
+      const ext = getFileExt(item.file.name);
+      const baseName = item.file.name.replace(/\.[^.]+$/, '');
+      try {
+        let text = '';
+        if (ext === 'pdf') {
+          text = await ocrPdfToText(item.file, lang, p => {
+            ocrProgressFill.style.width = (((done + p / 100) / ocrFiles.length) * 100) + '%';
+          });
+        } else {
+          text = await ocrImageToText(item.file, lang, p => {
+            ocrProgressFill.style.width = (((done + p / 100) / ocrFiles.length) * 100) + '%';
+          });
+        }
+        allText += (allText ? '\n\n--- ' + item.file.name + ' ---\n\n' : '') + text;
+        let result;
+        if (output === 'txt') {
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          result = { blob, name: `${baseName}_ocr.txt` };
+        } else {
+          const blob = await textToPdfBlob(text, baseName + ' (OCR)');
+          result = { blob, name: `${baseName}_ocr.pdf` };
+        }
+        ocrResults.push(result);
+        const url = URL.createObjectURL(result.blob);
+        const rExt = getFileExt(result.name);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.innerHTML = `<div class="file-icon">${getFileIcon(rExt)}</div><a href="${url}" download="${escapeHtml(result.name)}">${escapeHtml(result.name)}</a><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${formatSize(result.blob.size)}</div>`;
+        ocrResultsEl.appendChild(div);
+      } catch (e) {
+        console.error(e);
+        const div = document.createElement('div');
+        div.className = 'result-item';
+        div.style.borderColor = 'rgba(239,68,68,0.4)';
+        div.innerHTML = `<div class="file-icon">⚠️</div><div style="font-size:0.8rem;color:#fca5a5;">${escapeHtml(item.file.name)}</div><div style="font-size:0.72rem;color:var(--text-dim);margin-top:6px;">${escapeHtml(e.message)}</div>`;
+        ocrResultsEl.appendChild(div);
+        if (MemoryGuard.tripped) break;
+      }
+      done++;
+      ocrProgressFill.style.width = (done / ocrFiles.length * 100) + '%';
+      await yieldToBrowser();
+    }
+    if (allText) { ocrTextPreview.value = allText; ocrTextPreview.classList.add('show'); }
+    if (ocrResults.length) {
+      showStatus(ocrStatus, `✅ Готово! Распознано файлов: ${ocrResults.length} из ${ocrFiles.length}`, 'success');
+      if (ocrResults.length > 1) ocrZipBtn.style.display = 'block';
+    } else showStatus(ocrStatus, '❌ Не удалось распознать ни один файл', 'error');
+  } catch (err) {
+    console.error(err); showStatus(ocrStatus, '❌ ' + err.message, 'error');
+  } finally {
+    ocrConvertBtn.disabled = false;
+    setTimeout(() => ocrProgressBar.classList.remove('show'), 1200);
+  }
+});
+ocrZipBtn.addEventListener('click', async () => {
+  const zip = new JSZip();
+  ocrResults.forEach(r => zip.file(r.name, r.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  download(blob, 'ocr_results.zip');
+  ocrResults.forEach(r => { r.blob = null; });
+  ocrResults = []; ocrResultsEl.innerHTML = '';
+  ocrZipBtn.style.display = 'none';
+  showStatus(ocrStatus, '✅ ZIP скачан. Кэш очищен.', 'success');
+  MemoryGuard.update();
+});
+
+/* ============ СТАРТ ============ */
+MemoryGuard.startWatch();
+window.addEventListener('beforeunload', () => {
+  try { if (currentOcrWorker) { try { currentOcrWorker.terminate(); } catch (e) {} } } catch (e) {}
+});
+</script>
+
+</body>
+</html>

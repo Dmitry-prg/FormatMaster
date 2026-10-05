@@ -1,0 +1,30 @@
+{
+  "name": "Универсальный Конвертер — фото, PDF, документы",
+  "short_name": "Конвертер",
+  "description": "Фото → PDF, PDF → фото, документы, EPUB, Excel, OCR. Всё работает в браузере, файлы не загружаются на сервер.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#030308",
+  "theme_color": "#030308",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity", "photo"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%238b5cf6'/%3E%3Cstop offset='50%25' stop-color='%234c1d95'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3ClinearGradient id='g2' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ffffff' stop-opacity='0.9'/%3E%3Cstop offset='100%25' stop-color='%23ffffff' stop-opacity='0.05'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%23030308'/%3E%3Cpath d='M32 6 L54 20 L54 44 L32 58 L10 44 L10 20 Z' fill='url(%23g1)'/%3E%3Cpath d='M32 6 L54 20 L32 32 Z' fill='url(%23g2)'/%3E%3Cpath d='M32 6 L10 20 L32 32 Z' fill='%23ffffff' opacity='0.15'/%3E%3Cpath d='M32 6 L32 32 M32 58 L32 32 M10 20 L32 32 M54 20 L32 32' stroke='%23ffffff' stroke-opacity='0.4' stroke-width='0.6' fill='none'/%3E%3Ccircle cx='26' cy='18' r='2' fill='%23ffffff' opacity='0.9'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g1' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%238b5cf6'/%3E%3Cstop offset='50%25' stop-color='%234c1d95'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' fill='%23030308'/%3E%3Cpath d='M32 10 L50 22 L50 42 L32 54 L14 42 L14 22 Z' fill='url(%23g1)'/%3E%3C/svg%3E",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
